@@ -1,0 +1,147 @@
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ADMR">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>PAM ADMR Converter</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap">
+<style>
+/* Layout: one narrow column, built for a phone held in one hand. Palette: Patina green with warm sand panels. */
+:root{--bg:#f3f5f1;--panel:#ffffff;--ink:#17261d;--muted:#5d6b61;--line:#d9e0d6;--accent:#1f6b4a;--accent-ink:#ffffff;--accent-soft:#e1efe6;--bad:#b42318;--bad-bg:#fdecea;--good:#14683a;--good-bg:#e3f4e9;--warn:#8a5a00;--warn-bg:#fff4dc;--font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;--head:'Space Grotesk','Inter',system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1913;--panel:#17251c;--ink:#e8f0ea;--muted:#9fb1a5;--line:#294234;--accent:#4cc38a;--accent-ink:#06180f;--accent-soft:#1c3427;--bad:#ff8a80;--bad-bg:#3a1a18;--good:#6fdc9c;--good-bg:#17341f;--warn:#f0c66b;--warn-bg:#352a10;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1913;--panel:#17251c;--ink:#e8f0ea;--muted:#9fb1a5;--line:#294234;--accent:#4cc38a;--accent-ink:#06180f;--accent-soft:#1c3427;--bad:#ff8a80;--bad-bg:#3a1a18;--good:#6fdc9c;--good-bg:#17341f;--warn:#f0c66b;--warn-bg:#352a10;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--font);padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header h1{font:700 22px/1.15 var(--head);margin:0;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.label{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);padding:4px;border-radius:12px;border:1px solid var(--line)}
+.seg button{font:600 14px var(--font);padding:11px 6px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;line-height:1.2}
+.seg button small{display:block;font-weight:400;font-size:11.5px;margin-top:2px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{font:600 16px var(--font);border:0;border-radius:12px;padding:15px;background:var(--accent);color:var(--accent-ink);cursor:pointer;width:100%}
+.btn.alt{background:var(--accent-soft);color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#status{font-size:14px;color:var(--muted);min-height:20px}
+.check{border-radius:12px;padding:12px 14px;font-weight:500;font-size:14px}
+.check.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.check.good{background:var(--good-bg);color:var(--good);border:1px solid var(--good)}
+.check.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.check strong{display:block;margin-bottom:4px}
+.check ul{margin:6px 0 0;padding-left:18px}.check li{margin:3px 0;overflow-wrap:anywhere}
+details summary{cursor:pointer;font-weight:600;padding:2px 0}
+pre{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,Menlo,monospace;max-height:55vh;overflow:auto;background:var(--bg);border-radius:10px;padding:10px;border:1px solid var(--line)}
+footer{font-size:12px;color:var(--muted);text-align:center;display:flex;flex-direction:column;gap:4px;padding-top:4px}
+</style>
+<main>
+  <header>
+    <h1>PAM ADMR Converter</h1>
+    <p>Boat Movement PDF to ADMR Excel. The PDF is read on your phone and is not uploaded anywhere.</p>
+  </header>
+
+  <section class="card" aria-labelledby="m">
+    <div class="label" id="m">Report type</div>
+    <div class="seg" role="group" aria-label="Report type">
+      <button id="pm" aria-pressed="true">PM Draft<small>next day</small></button>
+      <button id="am" aria-pressed="false">AM Final<small>same day</small></button>
+    </div>
+    <input id="file" type="file" accept="application/pdf,.pdf">
+    <button class="btn" id="pick">Choose Boat Movement PDF</button>
+    <div id="status" role="status" aria-live="polite">Pick a PDF to start.</div>
+    <button class="btn alt" id="save" hidden>Save Excel file</button>
+  </section>
+
+  <div id="checker" class="check" hidden></div>
+
+  <section class="card" id="detailsCard" hidden>
+    <details open><summary>Details</summary><pre id="details"></pre></details>
+  </section>
+
+  <footer>
+    <div>Version 1 · Developer: Hunain</div>
+    <div>Use at your own risk. Always check the Excel against the Boat Movement PDF before operational use.</div>
+  </footer>
+</main>
+
+<script src="polyfill.js"></script>
+<script src="jszip.min.js"></script>
+<script src="admr.js"></script>
+<script type="module">
+import * as pdfjs from './pdf.min.mjs';
+pdfjs.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+// Run the PDF worker on the main thread so the polyfills above apply to it too (works on older iPhones).
+try { globalThis.pdfjsWorker = await import('./pdf.worker.min.mjs'); } catch (e) { /* falls back to a normal worker */ }
+const $ = (id) => document.getElementById(id);
+let mode = 'PM', file = null, result = null, busy = false, again = false;
+function setMode(m) { mode = m; $('pm').setAttribute('aria-pressed', m === 'PM'); $('am').setAttribute('aria-pressed', m === 'AM'); if (file) run(); }
+$('pm').onclick = () => setMode('PM'); $('am').onclick = () => setMode('AM');
+$('pick').onclick = () => $('file').click();
+$('file').onchange = (e) => { file = e.target.files[0] || null; if (file) run(); };
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function showChecker(issues, err) {
+  const el = $('checker'); el.hidden = false;
+  if (err) { el.className = 'check bad'; el.innerHTML = '<strong>Conversion stopped</strong>' + esc(err); return; }
+  if (issues.length) { el.className = 'check bad'; el.innerHTML = '<strong>' + issues.length + (issues.length === 1 ? ' issue' : ' issues') + ' to check</strong><ul>' + issues.map((i) => '<li>' + esc(i) + '</li>').join('') + '</ul>'; }
+  else { el.className = 'check good'; el.innerHTML = '<strong>No issues found</strong>Every room’s guest count matches the names found.'; }
+}
+async function run() {
+  if (busy) { again = true; return; } busy = true; result = null; $('save').hidden = true; $('detailsCard').hidden = true; $('checker').hidden = true;
+  $('status').textContent = 'Reading ' + file.name + '…';
+  try {
+    const data = new Uint8Array(await file.arrayBuffer());
+    const doc = await pdfjs.getDocument({ data, verbosity: 0 }).promise;
+    const ex = await AdmrAdapter.extract(pdfjs, doc);
+    if (ex.chars.length === 0) throw new AdmrCore.CriticalException('No selectable PDF text detected (is this a scanned image?)');
+    const chars = ex.chars.map((c) => AdmrCore.Ch(c.x0, c.x1, c.y, c.size, c.text));
+    const rects = ex.rects.map((r) => AdmrCore.Rect(r.x0, r.x1, r.y0, r.y1, r.filled));
+    const report = AdmrCore.parse(chars, rects);
+    const now = new Date(); const year = now.getFullYear();
+    const plan = AdmrLayout.build(report, mode === 'AM' ? AdmrLayout.AM : AdmrLayout.PM);
+    const bytes = await AdmrXlsx.build(JSZip, self.ADMR_TEMPLATE_B64, report, plan, year);
+    const warnings = report.warnings.slice();
+    if (doc.numPages > 1) warnings.push('Multi-page PDF: every page was read as one continuous table; verify the page breaks.');
+    if (!ex.rectsOk) warnings.push('PDF table cells could not be read; boat and flight cells are merged by position only.');
+    const issues = report.checks.map((c) => 'Count mismatch: ' + c).concat(warnings);
+    const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][report.month - 1];
+    const name = (mode === 'AM' ? 'ADMR-AM-Final-' : 'ADMR-PM-Draft-') + AdmrLayout.dayLabel(report.day) + '-' + mon + '.xlsx';
+    const pdfTotal = (gs) => gs.reduce((a, g) => a + (g.adults >= 0 && g.children >= 0 ? g.adults + g.children : g.guests.length), 0);
+    let t = (mode === 'AM' ? 'AM FINAL (same day)\n' : 'PM DRAFT (next day)\n') + 'Report: ' + report.day + ' ' + mon + ' ' + year + '\n';
+    t += 'CHECK YEAR: PDF headings omit the year; the device year (' + year + ') was used.\n\n';
+    t += 'Arrivals: ' + report.arrivals.length + ' villas, ' + plan.arrGuestRows + ' guests (PDF Adult+Child = ' + pdfTotal(report.arrivals) + ')\n';
+    t += 'Departures: ' + report.departures.length + ' villas, ' + plan.depGuestRows + ' guests (PDF Adult+Child = ' + pdfTotal(report.departures) + ')\n';
+    for (const n of plan.special) t += 'SPECIAL: ' + n + '\n';
+    if (mode === 'PM') t += 'Two empty merged groups (4 rows) were added after arrivals and after departures.\n';
+    else for (const n of plan.notes) t += 'MERGED: ' + n + '\n';
+    t += '\n';
+    for (const g of report.arrivals) t += 'ARR ' + g.villa + ': ' + g.guests.length + ' | ' + g.flight.replace(/\n/g, ' ') + ' | ' + [g.essentialist, g.paree, g.boat].filter((x) => x.trim()).join('/') + '\n';
+    for (const g of report.departures) t += 'DEP ' + g.villa + ': ' + g.guests.length + ' | ' + g.flight.replace(/\n/g, ' ') + ' | ' + g.agent.replace(/\n/g, ' ') + '\n';
+    t += '\nIMPORTANT: verify the output against the Boat Movement PDF before operational use.';
+    result = { bytes, name };
+    showChecker(issues); $('details').textContent = t; $('detailsCard').hidden = false;
+    $('status').textContent = 'Ready: ' + name; $('save').hidden = false;
+  } catch (e) {
+    const msg = e && e.message ? e.message : String(e);
+    $('status').textContent = 'Could not convert this PDF.'; showChecker([], msg);
+  } finally { busy = false; if (again) { again = false; run(); } }
+}
+$('save').onclick = async () => {
+  if (!result) return;
+  try {
+    const dl = window.claude && (await window.claude.use('downloads'));
+    if (!dl) {
+      const url = URL.createObjectURL(new Blob([result.bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a'); a.href = url; a.download = result.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      $('status').textContent = 'Download started: ' + result.name; return;
+    }
+    await dl.save({ filename: result.name, data: result.bytes });
+    $('status').textContent = 'Saved ' + result.name;
+  } catch (e) { $('status').textContent = e && e.code === 'declined' ? 'Save cancelled.' : 'Save failed' + (e && e.message ? ': ' + e.message : '.'); }
+};
+</script>
